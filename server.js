@@ -90,7 +90,7 @@ app.use(function (req, res, next) {
 });
 
 app.use(function (req, res, next) {
-  if (!req.url.includes("friends/v1/users/") or !req.url.includes("followings")) {
+  if (!req.url.includes("friends/v1/users/") || !req.url.includes("followings")) {
     res.end('URL blocked.');
     return;
   }
