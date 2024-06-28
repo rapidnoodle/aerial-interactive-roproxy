@@ -90,6 +90,10 @@ app.use(function (req, res, next) {
 });
 
 app.use(function (req, res, next) {
+  if (!req.url.includes("friends/v1/users/") or !req.url.includes("followings")) {
+    res.end('URL blocked.');
+    return;
+  }
   for (var i = 0; i < blocked.length; i++) {
     if (req.url === blocked[i]) {
       res.end('URL blocked.');
