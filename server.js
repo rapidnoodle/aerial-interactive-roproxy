@@ -2,20 +2,13 @@ var proxy = require('http-proxy');
 var express = require('express');
 var https = require('https');
 var url = require('url');
-var path = require('path');
-
-var api = require('./api.js');
-var blocked = require('./static/blocked.json');
-var reBlocked = require('./static/re_blocked.json');
 
 var port = process.env.PORT || 80;
 var subdomainsAsPath = true;
-var serveHomepage = true;
-var serveHomepageOnAllSubdomains = false;
 
 var httpsProxy = proxy.createProxyServer({
   agent: new https.Agent({
-    checkServerIdentity: function (host, cert) {
+    checkServerIdentity: function (_host, _cert) {
       return undefined;
     }
   }),
@@ -26,7 +19,7 @@ var httpProxy = proxy.createProxyServer({
   changeOrigin: true
 });
 
-function stripSub (link) {
+function stripSub(link) {
   var original = url.parse(link);
   var sub = '';
   var path = original.path;
@@ -39,7 +32,7 @@ function stripSub (link) {
   return [path || '/', sub];
 }
 
-function getSubdomain (req, rewrite) {
+function getSubdomain(req, rewrite) {
   var sub;
   if (subdomainsAsPath) {
     var res = stripSub(req.url);
@@ -54,7 +47,7 @@ function getSubdomain (req, rewrite) {
   return sub;
 }
 
-function onProxyError (err, req, res) {
+function onProxyError (err, _req, res) {
   console.error(err);
 
   res.writeHead(500, {
@@ -64,7 +57,7 @@ function onProxyError (err, req, res) {
   res.end('Proxying failed.');
 }
 
-function onProxyReq (proxyReq, req, res, options) {
+function onProxyReq (proxyReq, _req, _res, _options) {
   proxyReq.setHeader('User-Agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.169 Safari/537.36');
   proxyReq.removeHeader('roblox-id');
 }
@@ -76,35 +69,10 @@ httpProxy.on('proxyReq', onProxyReq);
 
 var app = express();
 
-app.use('/proxy', express.static('./static'));
-app.use('/proxy', api);
-
 app.use(function (req, res, next) {
-  if (serveHomepage && stripSub(req.url)[0] === '/') {
-    if (serveHomepageOnAllSubdomains || !getSubdomain(req)) {
-      res.sendFile(path.join(__dirname, '/static/home.html'));
-      return;
-    }
-  }
-  next();
-});
-
-app.use(function (req, res, next) {
-  if (!req.url.includes("friends/v1/users/") || !req.url.includes("followings")) {
+  if (!req.url.includes("friends/v1/users/") || !req.url.includes("followings") || req.url.includes("/followings/count")) {
     res.end('URL blocked.');
     return;
-  }
-  for (var i = 0; i < blocked.length; i++) {
-    if (req.url === blocked[i]) {
-      res.end('URL blocked.');
-      return;
-    }
-  }
-  for (i = 0; i < reBlocked.length; i++) {
-    if (req.url.match(reBlocked[i])) {
-      res.end('URL blocked.');
-      return;
-    }
   }
   next();
 });
@@ -123,7 +91,7 @@ app.use(function (req, res, next) {
   }
 });
 
-app.use(function (err, req, res, next) {
+app.use(function (err, _req, res, _next) {
   console.error(err);
 
   res.writeHead(500, {
